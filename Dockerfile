@@ -1,15 +1,15 @@
 # Use an official Python runtime as a parent image
 FROM python:3.9-slim as base
 
-# Set environment variables - avoid writing .pyc files and ensure stdout and stderr are unbuffered
+# Set environment variables - avoid writing .pyc files and PYTHONUNBUFFERED to ensure stdout and stderr are unbuffered.
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
-# Install build dependencies with pinned versions
+# Install build dependencies 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-       build-essential=12.9 \
-       gcc=4:10.2.1-1.1 \
+       build-essential \
+       gcc \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
