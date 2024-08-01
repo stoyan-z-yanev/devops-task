@@ -1,0 +1,16 @@
+{{- define "common.internal.networkpolicy" -}}
+{{- range .Values.networkpolicies }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: networkpolicy-{{ tpl .name $ }}
+{{ include "common.imetadata" $ | indent 2 }}
+spec:
+  podSelector:
+    matchLabels: {{ .matchLabels | toJson }}
+  ingress: {{ .ingress | toJson }}
+  egress: {{ .egress | toJson }}
+  policyTypes: {{ .policyTypes | toJson }}
+{{- end -}}
+{{- end -}}

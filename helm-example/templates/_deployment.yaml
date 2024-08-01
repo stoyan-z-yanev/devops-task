@@ -1,0 +1,90 @@
+{{- define "common.internal.deployment" -}}
+apiVersion: apps/v1
+kind: Deployment
+{{ include "common.metadata" . }}
+spec:
+  revisionHistoryLimit: 3
+  replicas: {{ .Values.deployment.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "common.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata: {{ include "common.labels" . | nindent 6 }}
+      annotations:
+        {{- if eq .Values.environment "pr" }}
+        rollme: {{ randAlphaNum 5 }}
+        {{- end }}
+        checksum/config: {{ tpl (toYaml .Values.secrets) . | sha256sum }}
+    spec:
+      {{- if eq .Values.environment "prod" }}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: "app.kubernetes.io/name"
+                  operator: In
+                  values:
+                  - {{ include "common.name" . }}
+              topologyKey: topology.kubernetes.io/zone
+            weight: 80
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                  - key: "app.kubernetes.io/name"
+                    operator: In
+                    values:
+                    - {{ include "common.name" . }}
+              topologyKey: "kubernetes.io/hostname"
+            weight: 30
+      {{- end }}
+      {{- if .Values.deployment.initContainer.enabled }}
+      initContainers:
+        - name: "init-{{ .Chart.Name }}"
+          image: "{{ tpl .Values.deployment.image.repository . }}:{{ .Values.deployment.image.tag }}"
+          command: {{ .Values.deployment.initContainer.command | toJson }}
+          args: {{ tpl (.Values.deployment.initContainer.args | toJson) . }}
+          resources:
+            limits:
+              cpu: {{ .Values.deployment.resources.limits.cpu }}
+              memory: {{ .Values.deployment.resources.limits.memory }}
+            requests:
+              cpu: {{ .Values.deployment.resources.requests.cpu }}
+              memory: {{ .Values.deployment.resources.requests.memory }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ tpl .Values.deployment.image.repository . }}:{{ .Values.deployment.image.tag }}"
+          {{- if eq .Values.environment "pr" }}
+          imagePullPolicy: Always
+          {{- else }}
+          imagePullPolicy: {{ .Values.deployment.image.pullPolicy }}
+          {{- end }}
+          livenessProbe: {{ .Values.deployment.livenessProbe | toJson }}
+          readinessProbe: {{ .Values.deployment.readinessProbe | toJson }}
+          resources:
+            limits:
+              cpu: {{ .Values.deployment.resources.limits.cpu }}
+              memory: {{ .Values.deployment.resources.limits.memory }}
+            requests:
+              cpu: {{ .Values.deployment.resources.requests.cpu }}
+              memory: {{ .Values.deployment.resources.requests.memory }}
+          env:
+            {{- range .Values.deployment.env }}
+            - name: {{ .name }}
+              value: {{ tpl .value $ }}
+            {{- end }}
+            {{- include "common.secretenvs" . | indent 12 }}
+      terminationGracePeriodSeconds: {{ .Values.deployment.terminationGracePeriodSeconds }}
+      dnsConfig:
+        options:
+          - name: ndots
+            value: "2"
+          - name: edns0
+      {{- if eq .Values.environment "local" }}
+      imagePullSecrets:
+        - name: regcred
+      {{- end }}
+{{- end -}}

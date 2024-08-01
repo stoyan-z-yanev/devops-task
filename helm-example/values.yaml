@@ -1,0 +1,77 @@
+# use local environment by default
+environment: local
+# namespace to use
+namespace: default
+# tagging info for compliance
+tags:
+  serviceName: newskit-api
+  serviceCatalogueId: 388
+# deployment configuration
+deployment:
+  # default replication count
+  replicaCount: 1
+  # default termination grace period for pods
+  terminationGracePeriodSeconds: 30
+  # image configuration
+  image:
+    # image pull policy
+    pullPolicy: IfNotPresent
+    # repository: ecr_repo_name
+    # tag: image_tag
+    # resource requests and limits
+  resources:
+    limits:
+      cpu: "0.4"
+      memory: 512Mi
+    requests:
+      cpu: "0.2"
+      memory: 256Mi
+  # environment variables
+  env: []
+  livenessProbe:
+    httpGet:
+      path: /.well-known/apollo/server-health
+      port: 4000
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    failureThreshold: 10
+    timeoutSeconds: 1
+  readinessProbe:
+    httpGet:
+      path: /.well-known/apollo/server-health
+      port: 4000
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    failureThreshold: 2
+    timeoutSeconds: 1
+  initContainer:
+    enabled: false
+# service configuration
+service:
+  # default service type
+  type: NodePort
+  # default service port to expose
+  port: 80
+# ingress configuration
+ingress:
+  enabled: false
+# network policy configuration
+networkPolicy:
+  enabled: false
+# secret configuration
+hasSecret: false
+secretName: []
+# horizontal pod autoscaler configuration
+horizontalPodAutoscaler:
+  enabled: true
+  # default minimum replicas count
+  minReplicas: 1
+  # default maximum replicas count
+  maxReplicas: 2
+  # default resource for scaling action
+  resources:
+    # default utilization level for scaling
+    - name: cpu
+      targetUtilizationPercentage: 50
+    - name: memory
+      targetUtilizationPercentage: 60

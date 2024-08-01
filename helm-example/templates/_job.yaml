@@ -1,0 +1,42 @@
+{{- define "common.internal.job" -}}
+{{- if and (ne .Values.environment "pr") (ne .Values.environment "local") -}}
+apiVersion: batch/v1
+kind: Job
+{{ include "common.metadata" . }}
+spec:
+  ttlSecondsAfterFinished: 240
+  activeDeadlineSeconds: 300
+  template:
+    metadata:
+      labels:
+        news.co.uk/service-name: {{ .Values.tags.serviceName }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ tpl .Values.deployment.image.repository . }}:{{ .Values.deployment.image.tag }}"
+          {{- if eq .Values.environment "pr" }}
+          imagePullPolicy: Always
+          {{- else }}
+          imagePullPolicy: {{ .Values.deployment.image.pullPolicy }}
+          {{- end }}
+          resources:
+            limits:
+              cpu: {{ .Values.deployment.resources.limits.cpu }}
+              memory: {{ .Values.deployment.resources.limits.memory }}
+            requests:
+              cpu: {{ .Values.deployment.resources.requests.cpu }}
+              memory: {{ .Values.deployment.resources.requests.memory }}
+          env:
+            {{- range .Values.job.env }}
+            - name: {{ .name }}
+              value: {{ tpl .value $ }}
+            {{- end }}
+            {{- include "common.secretenvs" . | indent 12  }}
+          command: ["/bin/bash","-c","curl -sSL https://rover.apollo.dev/nix/v0.3.0 | sh && PATH=$HOME/.rover/bin:$PATH && yarn graph:schema"]
+      restartPolicy: Never
+      {{- if eq .Values.environment "local" }}
+      imagePullSecrets:
+        - name: regcred
+      {{- end }}
+{{- end -}}
+{{- end -}}

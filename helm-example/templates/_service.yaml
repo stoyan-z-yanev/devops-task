@@ -1,0 +1,29 @@
+{{- define "common.internal.service" -}}
+apiVersion: v1
+kind: Service
+{{ include "common.metadata" . }}
+  {{- if and (eq .Values.service.type "LoadBalancer") (ne .Values.environment "pr") (ne .Values.environment "local") -}}
+  {{/* Settings in case ELB or potentially NLB would be required */}}
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+    service.beta.kubernetes.io/aws-load-balancer-internal: "true"
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: tcp
+    service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: "60"
+    service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags: {{ include "common.tags" . }}
+    external-dns.alpha.kubernetes.io/hostname: {{ include "common.lbhostname" . }}
+    external-dns.alpha.kubernetes.io/ttl: "60"
+  {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: 4000
+      protocol: TCP
+      name: http
+      {{- if and (eq .Values.environment "local") .Values.service.nodePort }}
+      nodePort: {{ .Values.service.nodePort }}
+      {{- end }}
+  selector:
+    app.kubernetes.io/name: {{ include "common.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end -}}

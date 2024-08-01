@@ -1,0 +1,7 @@
+apiVersion: v2
+name: ncu-newskit-api-common
+version: 0.1.0
+description: Common (parent) chart for NewsKIT API services
+keywords:
+  - newskit-api
+home: https://github.com/newscorp-ghfb/ncu-newskit-api/
