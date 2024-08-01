@@ -16,7 +16,7 @@ RUN apt-get update \
 # Install dependencies in a separate stage to leverage Docker's caching mechanism
 FROM base as builder
 WORKDIR /app
-COPY requirements.txt .
+COPY app/ .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Final stage: copy only the necessary files and dependencies
