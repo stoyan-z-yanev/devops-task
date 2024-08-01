@@ -1,22 +1,22 @@
 # Use an official Python runtime as a parent image
 FROM python:3.9-slim as base
 
-# Set environment variables - avoid writing .pyc files and PYTHONUNBUFFERED to ensure stdout and stderr are unbuffered.
+# Set environment variables - avoid writing .pyc files and ensure stdout and stderr are unbuffered
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
-# Install build dependencies 
+# Install build dependencies with pinned versions
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-       build-essential \
-       gcc \
+       build-essential=12.9 \
+       gcc=4:10.2.1-1.1 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # Install dependencies in a separate stage to leverage Docker's caching mechanism
 FROM base as builder
 WORKDIR /app
-COPY app/ .
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Final stage: copy only the necessary files and dependencies
